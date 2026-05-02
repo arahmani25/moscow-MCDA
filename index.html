@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moscow Housing · MCDA Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="data.js"></script>
+<style>
+:root{
+  --bg:#F5F6FA; --surface:#fff; --surface2:#F0F2F8; --border:#E3E8F0; --border2:#C8D0E0;
+  --text:#0D1524; --text2:#4A5470; --text3:#8A93AE;
+  --navy:#0B1C3D; --blue:#2563EB; --blue2:#1D4ED8; --blue-l:#EFF4FF; --blue-ll:#DBEAFE;
+  --gold:#F59E0B; --gold-l:#FFFBEB; --green:#059669; --green-l:#ECFDF5;
+  --red:#DC2626; --red-l:#FEF2F2; --purple:#7C3AED; --purple-l:#F5F3FF;
+  --teal:#0891B2; --teal-l:#ECFEFF; --r:14px; --r-sm:8px;
+  --sh:0 1px 2px rgba(0,0,0,.05),0 4px 12px rgba(0,0,0,.04);
+  --sh-md:0 4px 20px rgba(0,0,0,.09);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;}
+body{font-family:"Plus Jakarta Sans",sans-serif;font-size:14px;line-height:1.5;background:var(--bg);color:var(--text);display:flex;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{width:224px;flex-shrink:0;background:var(--navy);display:flex;flex-direction:column;height:100vh;overflow-y:auto;}
+.sb-logo{padding:24px 20px 16px;border-bottom:1px solid rgba(255,255,255,.07);}
+.sb-badge{display:inline-block;background:var(--gold);color:var(--navy);font-weight:700;font-size:10px;letter-spacing:1.5px;padding:3px 8px;border-radius:4px;margin-bottom:9px;text-transform:uppercase;}
+.sb-title{font-family:"Syne",sans-serif;font-size:15px;color:#fff;line-height:1.3;}
+.sb-sub{font-size:10px;color:rgba(255,255,255,.28);margin-top:3px;}
+.sb-sec{padding:16px 10px 0;}
+.sb-lbl{font-size:9px;letter-spacing:1.8px;color:rgba(255,255,255,.22);text-transform:uppercase;padding:0 10px;margin-bottom:4px;}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:9px;border:none;background:none;color:rgba(255,255,255,.45);font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;text-align:left;margin-bottom:1px;}
+.nav-btn svg{opacity:.55;flex-shrink:0;transition:opacity .15s;}
+.nav-btn:hover{background:rgba(255,255,255,.07);color:#fff;}
+.nav-btn:hover svg{opacity:1;}
+.nav-btn.active{background:rgba(255,255,255,.11);color:#fff;}
+.nav-btn.active svg{opacity:1;}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);margin-left:auto;flex-shrink:0;}
+.sb-foot{margin-top:auto;padding:16px 20px;border-top:1px solid rgba(255,255,255,.07);font-size:10px;color:rgba(255,255,255,.22);line-height:1.7;}
+
+/* MAIN */
+.main{flex:1;height:100vh;overflow-y:auto;overflow-x:hidden;}
+.pw{padding:34px 34px 60px;max-width:1260px;}
+.page{display:none;}
+.page.active{display:block;animation:fu .25s ease;}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* PAGE HEADER */
+.ph{margin-bottom:26px;}
+.ph-pill{display:inline-flex;align-items:center;gap:6px;background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:600;padding:4px 10px;border-radius:100px;margin-bottom:10px;border:1px solid var(--blue-ll);}
+.ph h1{font-family:"Syne",sans-serif;font-size:27px;color:var(--text);margin-bottom:5px;}
+.ph p{font-size:13px;color:var(--text2);max-width:620px;}
+
+/* STAT GRID */
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:13px;margin-bottom:22px;}
+.sc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--sh);}
+.si{width:33px;height:33px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:11px;}
+.sv{font-family:"Syne",sans-serif;font-size:24px;color:var(--text);line-height:1;margin-bottom:3px;}
+.sl{font-size:11px;color:var(--text2);}
+
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
+@media(max-width:860px){.g2,.g3{grid-template-columns:1fr;}}
+
+/* CHART CARD */
+.cc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--sh);}
+.cc h3{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.cc .sub{font-size:11px;color:var(--text2);margin-bottom:14px;}
+.ch{position:relative;height:200px;}
+
+/* INSIGHT BARS */
+.ibar{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);}
+.ibar:last-child{border-bottom:none;}
+.ib-lbl{font-size:11px;color:var(--text2);width:155px;flex-shrink:0;}
+.ib-track{flex:1;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.ib-fill{height:100%;border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1);}
+.ib-val{font-size:11px;font-weight:700;color:var(--text);min-width:46px;text-align:right;}
+
+/* EXPLORER */
+.fstrip{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;margin-bottom:16px;box-shadow:var(--sh);display:flex;flex-wrap:wrap;gap:13px;align-items:flex-end;}
+.fg label{display:block;font-size:10px;font-weight:700;color:var(--text2);letter-spacing:.6px;text-transform:uppercase;margin-bottom:5px;}
+.fg select,.fg input[type=number]{border:1px solid var(--border);border-radius:var(--r-sm);padding:7px 10px;font-family:"Plus Jakarta Sans",sans-serif;font-size:12px;color:var(--text);background:var(--bg);outline:none;cursor:pointer;min-width:105px;transition:border .15s;}
+.fg select:focus,.fg input:focus{border-color:var(--blue);}
+.fg input{width:95px;}
+.cbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px;}
+.cbar span{font-size:12px;color:var(--text2);}
+.cbar strong{color:var(--text);}
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:13px;}
+.acard{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);transition:all .18s;}
+.acard:hover{transform:translateY(-2px);box-shadow:var(--sh-md);border-color:var(--blue);}
+.ac-top{padding:13px 15px 11px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+.ac-station{font-size:13px;font-weight:700;color:var(--text);}
+.ac-region{font-size:10px;color:var(--text3);margin-top:2px;}
+.ac-price{text-align:right;flex-shrink:0;}
+.ac-pval{font-family:"Syne",sans-serif;font-size:17px;color:var(--navy);}
+.ac-plbl{font-size:9px;color:var(--text3);}
+.ac-body{padding:11px 15px 13px;}
+.tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+.tag{font-size:9px;font-weight:700;padding:3px 7px;border-radius:5px;}
+.tc{background:#FEF3C7;color:#92400E;}
+.te{background:#DBEAFE;color:#1E40AF;}
+.td{background:#EDE9FE;color:#5B21B6;}
+.tn{background:#F1F5F9;color:#475569;}
+.tb{background:var(--blue-l);color:var(--blue);}
+.tg{background:var(--green-l);color:var(--green);}
+.aattrs{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:10px;}
+.attr{text-align:center;padding:5px 3px;background:var(--bg);border-radius:6px;}
+.av{font-size:12px;font-weight:700;color:var(--text);}
+.al{font-size:9px;color:var(--text3);margin-top:1px;}
+.srow{display:flex;align-items:center;gap:8px;padding-top:9px;border-top:1px solid var(--border);}
+.slbl{font-size:10px;color:var(--text2);flex-shrink:0;}
+.strk{flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;}
+.sfil{height:100%;border-radius:2px;background:var(--blue);}
+.sval{font-size:11px;font-weight:700;color:var(--blue);min-width:28px;text-align:right;}
+.pgn{display:flex;align-items:center;gap:8px;margin-top:18px;justify-content:center;}
+.pgb{border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:"Plus Jakarta Sans",sans-serif;font-size:12px;padding:6px 13px;border-radius:7px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:5px;}
+.pgb:hover:not(:disabled){border-color:var(--blue);color:var(--blue);}
+.pgb:disabled{opacity:.38;cursor:not-allowed;}
+.pgi{font-size:12px;color:var(--text2);}
+
+/* MCDA */
+.mwrap{display:grid;grid-template-columns:275px 1fr;gap:18px;}
+@media(max-width:840px){.mwrap{grid-template-columns:1fr;}}
+.wcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--sh);position:sticky;top:0;height:fit-content;}
+.wcard h3{font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;}
+.ptabs{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px;}
+.ptab{font-size:11px;font-weight:600;padding:5px 11px;border-radius:7px;border:1.5px solid var(--border);background:none;color:var(--text2);cursor:pointer;font-family:"Plus Jakarta Sans",sans-serif;transition:all .15s;}
+.ptab:hover{border-color:var(--blue);color:var(--blue);}
+.ptab.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+.wrow{margin-bottom:13px;}
+.wtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
+.wname{font-size:11px;font-weight:700;color:var(--text);}
+.wpct{font-size:12px;font-weight:700;color:var(--blue);font-variant-numeric:tabular-nums;}
+input[type=range].slider{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:var(--surface2);outline:none;cursor:pointer;border:none;padding:0;}
+input[type=range].slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--blue);border:2px solid #fff;box-shadow:0 0 0 1.5px var(--blue);transition:transform .12s;}
+input[type=range].slider::-webkit-slider-thumb:hover{transform:scale(1.2);}
+.wpill{text-align:center;font-size:11px;font-weight:600;padding:7px;border-radius:7px;margin-top:5px;}
+.wok{background:var(--green-l);color:var(--green);}
+.wwarn{background:var(--red-l);color:var(--red);}
+.fbox{margin-top:13px;padding:11px;background:var(--blue-l);border-radius:9px;font-size:11px;color:var(--blue);line-height:1.7;border:1px solid var(--blue-ll);}
+.rlist{display:flex;flex-direction:column;gap:11px;}
+.rcard{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:16px 18px;box-shadow:var(--sh);transition:border-color .2s;}
+.rcard.gold{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),var(--sh);}
+.rhead{display:flex;align-items:center;gap:11px;margin-bottom:13px;}
+.rnum{font-family:"Syne",sans-serif;font-size:24px;color:var(--text3);width:32px;flex-shrink:0;line-height:1;}
+.rcard.gold .rnum{color:var(--gold);}
+.rinfo{flex:1;}
+.rname{font-size:13px;font-weight:700;color:var(--text);}
+.rdesc{font-size:11px;color:var(--text2);margin-top:1px;}
+.rscore{font-family:"Syne",sans-serif;font-size:24px;color:var(--navy);}
+.cbars{display:flex;flex-direction:column;gap:6px;}
+.crow{display:flex;align-items:center;gap:8px;}
+.clbl{font-size:10px;color:var(--text2);width:115px;flex-shrink:0;}
+.ctrk{flex:1;height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;}
+.cfil{height:100%;border-radius:2px;}
+.cv{font-size:10px;font-weight:700;color:var(--text);min-width:14px;text-align:right;}
+
+/* ABOUT */
+.acard-w{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:22px;box-shadow:var(--sh);margin-bottom:18px;}
+.acard-w h3{font-size:13px;font-weight:700;color:var(--text);margin-bottom:13px;padding-bottom:9px;border-bottom:1px solid var(--border);}
+.team-grid{display:flex;gap:12px;flex-wrap:wrap;}
+.titem{display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 15px;flex:1;min-width:180px;}
+.tav{width:38px;height:38px;border-radius:50%;background:var(--navy);color:var(--gold);font-family:"Syne",sans-serif;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tname{font-size:12px;font-weight:700;color:var(--text);}
+.trole{font-size:10px;color:var(--text2);margin-top:2px;}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;}
+.citem{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+.citem strong{display:block;font-size:12px;color:var(--text);margin-bottom:1px;}
+.citem span{font-size:10px;color:var(--text2);}
+.mrow{display:flex;gap:11px;flex-wrap:wrap;margin-top:4px;}
+.mc{flex:1;min-width:150px;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px;}
+.mt{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;}
+.mn{font-size:12px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.md{font-size:10px;color:var(--text2);line-height:1.5;}
+
+/* LOADING */
+.loading{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:9999;}
+.lbar{width:200px;height:3px;background:var(--border);border-radius:2px;overflow:hidden;}
+.lfill{height:100%;background:var(--blue);border-radius:2px;animation:ld 1.3s ease-in-out infinite;}
+@keyframes ld{0%{width:0;margin-left:0}50%{width:55%}100%{width:0;margin-left:200px}}
+</style>
+</head>
+<body>
+<div class="loading" id="loading">
+  <div style="font-family:'Syne',sans-serif;font-size:19px;color:var(--navy)">Loading dataset</div>
+  <div class="lbar"><div class="lfill"></div></div>
+  <p style="font-size:11px;color:var(--text2)">Reading 22,676 apartment listings from data.js</p>
+</div>
+
+<aside class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-badge">HSE</div>
+    <div class="sb-title">Moscow Housing<br>MCDA</div>
+    <div class="sb-sub">Decision Analysis 2024-25</div>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">Overview</div>
+    <button class="nav-btn active" onclick="go('overview',this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="3" width="4" height="18"/></svg>
+      Dashboard<span class="nav-dot"></span>
+    </button>
+    <button class="nav-btn" onclick="go('explore',this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Data Explorer
+    </button>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">Analysis</div>
+    <button class="nav-btn" onclick="go('mcda',this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      MCDA Tool
+    </button>
+    <button class="nav-btn" onclick="go('insights',this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Insights
+    </button>
+  </div>
+  <div class="sb-sec">
+    <div class="sb-lbl">Project</div>
+    <button class="nav-btn" onclick="go('about',this)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      About
+    </button>
+  </div>
+  <div class="sb-foot">
+    Fidan Akhundova<br>Frank A. Carrasco Paulino<br>Ahmad Shah Rahmani<br><br>
+    Dataset: Nov 2023 &middot; 22,676 listings
+  </div>
+</aside>
+
+<main class="main">
+<div class="pw">
+
+<!-- DASHBOARD -->
+<div id="page-overview" class="page active">
+  <div class="ph">
+    <div class="ph-pill">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      22,676 real listings &middot; Moscow &amp; Oblast &middot; Nov 2023
+    </div>
+    <h1>Moscow Housing Market</h1>
+    <p>Full exploratory data analysis from the dataset powering our MCDA model.</p>
+  </div>
+  <div class="sg" id="stat-grid"></div>
+  <div class="g2">
+    <div class="cc"><h3>Price Distribution</h3><div class="sub">Listings by price range (M RUB)</div><div class="ch"><canvas id="c-pdist"></canvas></div></div>
+    <div class="cc"><h3>Apartment Types by Rooms</h3><div class="sub">All 22,676 listings</div><div class="ch"><canvas id="c-rooms"></canvas></div></div>
+  </div>
+  <div class="g2">
+    <div class="cc"><h3>Median Price by Renovation</h3><div class="sub">How renovation status affects price</div><div class="ch"><canvas id="c-reno"></canvas></div></div>
+    <div class="cc"><h3>Moscow vs Moscow Oblast</h3><div class="sub">Median price by region (M RUB)</div><div class="ch"><canvas id="c-region"></canvas></div></div>
+  </div>
+  <div class="g2">
+    <div class="cc"><h3>Metro Distance vs Price</h3><div class="sub">Median price by walking distance to metro</div><div class="ch"><canvas id="c-metro"></canvas></div></div>
+    <div class="cc"><h3>Floor Level Distribution</h3><div class="sub">Listing count by floor range</div><div class="ch"><canvas id="c-floor"></canvas></div></div>
+  </div>
+</div>
+
+<!-- DATA EXPLORER -->
+<div id="page-explore" class="page">
+  <div class="ph">
+    <div class="ph-pill">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      All 22,676 listings from dataset
+    </div>
+    <h1>Data Explorer</h1>
+    <p>Filter and browse all real Moscow apartment listings. The MCDA score reflects your current weights from the MCDA Tool.</p>
+  </div>
+  <div class="fstrip">
+    <div class="fg"><label>Rooms</label><select id="f-rooms" onchange="applyFilter()"><option value="">All</option><option value="0">Studio</option><option value="1">1 room</option><option value="2">2 rooms</option><option value="3">3 rooms</option><option value="4">4 rooms</option></select></div>
+    <div class="fg"><label>Renovation</label><select id="f-reno" onchange="applyFilter()"><option value="">All</option><option value="Cosmetic">Cosmetic</option><option value="European-style renovation">European</option><option value="Designer">Designer</option><option value="Without renovation">None</option></select></div>
+    <div class="fg"><label>Region</label><select id="f-region" onchange="applyFilter()"><option value="">All</option><option value="Moscow">Moscow</option><option value="Moscow region">Moscow Oblast</option></select></div>
+    <div class="fg"><label>Max metro walk</label><select id="f-metro" onchange="applyFilter()"><option value="">Any</option><option value="5">5 min</option><option value="10">10 min</option><option value="20">20 min</option><option value="30">30 min</option></select></div>
+    <div class="fg"><label>Max price (M RUB)</label><input type="number" id="f-price" placeholder="e.g. 20" min="1" oninput="applyFilter()"></div>
+    <div class="fg"><label>Sort by</label><select id="f-sort" onchange="applyFilter()"><option value="p-asc">Price low to high</option><option value="p-desc">Price high to low</option><option value="a-desc">Area largest</option><option value="m-asc">Closest metro</option><option value="s-desc">MCDA score</option></select></div>
+  </div>
+  <div class="cbar"><span id="count-lbl"></span><span id="page-lbl" style="font-size:11px;color:var(--text3)"></span></div>
+  <div class="agrid" id="apt-grid"></div>
+  <div class="pgn" id="pgn"></div>
+</div>
+
+<!-- MCDA TOOL -->
+<div id="page-mcda" class="page">
+  <div class="ph">
+    <div class="ph-pill">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      Weighted Scoring Model (WSM)
+    </div>
+    <h1>MCDA Decision Tool</h1>
+    <p>Adjust the weights for each criterion. The four apartment profiles are re-ranked instantly.</p>
+  </div>
+  <div class="mwrap">
+    <div class="wcard">
+      <h3>Criteria Weights</h3>
+      <div class="ptabs">
+        <button class="ptab active" onclick="applyProfile('default',this)">Default</button>
+        <button class="ptab" onclick="applyProfile('student',this)">Student</button>
+        <button class="ptab" onclick="applyProfile('family',this)">Family</button>
+        <button class="ptab" onclick="applyProfile('worker',this)">Worker</button>
+      </div>
+      <div id="sliders"></div>
+      <div class="wpill wok" id="w-total">Total: 1.00 — valid</div>
+      <div class="fbox"><strong>WSM Formula</strong><br>Score = &Sigma; (criterion score &times; weight)<br>All scores are on a 1&ndash;10 scale.</div>
+    </div>
+    <div class="rlist" id="rank-list"></div>
+  </div>
+</div>
+
+<!-- INSIGHTS -->
+<div id="page-insights" class="page">
+  <div class="ph">
+    <div class="ph-pill">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Computed from all 22,676 listings
+    </div>
+    <h1>Research Insights</h1>
+    <p>Answers to the six dataset research questions, computed from the full dataset.</p>
+  </div>
+  <div class="g2">
+    <div class="cc"><h3>Q1 &mdash; Most common apartment type</h3><div class="sub">By room count across all listings</div><div id="ins-rooms"></div><div style="margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-ll);font-size:11px;line-height:1.6"><strong>Finding:</strong> 2-room apartments are most common (28%), then 1-room (23%). Studios are 16%.</div></div>
+    <div class="cc"><h3>Q2 &mdash; Metro proximity and price</h3><div class="sub">Median price (M RUB) by walk time to metro</div><div id="ins-metro"></div><div style="margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--blue-l);color:var(--blue);border:1px solid var(--blue-ll);font-size:11px;line-height:1.6"><strong>Finding:</strong> Apartments within 5 min of metro cost 22% more than 6&ndash;15 min (13.4M vs 11.0M).</div></div>
+    <div class="cc"><h3>Q3 &mdash; Renovation and price</h3><div class="sub">Median price (M RUB) by renovation level</div><div id="ins-reno"></div><div style="margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--purple-l);color:var(--purple);border:1px solid #DDD6FE;font-size:11px;line-height:1.6"><strong>Finding:</strong> Designer renovation is 9&times; more expensive than cosmetic (72M vs 8.2M). Largest jump is European to Designer (+270%).</div></div>
+    <div class="cc"><h3>Q4 &mdash; Moscow vs Oblast</h3><div class="sub">Median price by region</div><div id="ins-region"></div><div style="margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--teal-l);color:var(--teal);border:1px solid #A5F3FC;font-size:11px;line-height:1.6"><strong>Finding:</strong> Moscow costs 2.4&times; more than Oblast (15.9M vs 6.5M). Oblast = 29% of dataset.</div></div>
+    <div class="cc"><h3>Q5 &mdash; Floor preferences</h3><div class="sub">Listing count by floor range</div><div id="ins-floor"></div><div style="margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--gold-l);color:#92400E;border:1px solid #FDE68A;font-size:11px;line-height:1.6"><strong>Finding:</strong> Low floors (2&ndash;5) most common (32%). Ground and top floors least common (7% each).</div></div>
+    <div class="cc"><h3>Q6 &mdash; Key price-driving factors</h3><div class="sub">MCDA criterion weights derived from analysis</div><div id="ins-weights"></div><div style="margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--green-l);color:var(--green);border:1px solid #A7F3D0;font-size:11px;line-height:1.6"><strong>Finding:</strong> Price and metro proximity account for 55% of decision weight. Renovation, size and infrastructure share the remaining 45%.</div></div>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<div id="page-about" class="page">
+  <div class="ph">
+    <div class="ph-pill">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      HSE University &middot; Decision Analysis 2024&ndash;25
+    </div>
+    <h1>About the Project</h1>
+    <p>Multi-Criteria Decision Analysis for apartment selection in Moscow using real housing data.</p>
+  </div>
+  <div class="acard-w"><h3>Team</h3><div class="team-grid"><div class="titem"><div class="tav">FA</div><div><div class="tname">Fidan Akhundova</div><div class="trole">Data &amp; Criteria Definition</div></div></div><div class="titem"><div class="tav">FC</div><div><div class="tname">Frank A. Carrasco Paulino</div><div class="trole">Calculations &amp; Modelling</div></div></div><div class="titem"><div class="tav">AR</div><div><div class="tname">Ahmad Shah Rahmani</div><div class="trole">Presentation &amp; Visuals</div></div></div></div></div>
+  <div class="acard-w"><h3>Dataset &mdash; 12 columns, 22,676 rows</h3><div class="cgrid"><div class="citem"><strong>Price</strong><span>Target variable (RUB)</span></div><div class="citem"><strong>Apartment type</strong><span>New / Secondary</span></div><div class="citem"><strong>Metro station</strong><span>Nearest stop name</span></div><div class="citem"><strong>Minutes to metro</strong><span>Walk time 0&ndash;60 min</span></div><div class="citem"><strong>Region</strong><span>Moscow or Oblast</span></div><div class="citem"><strong>Number of rooms</strong><span>0 (studio) to 12</span></div><div class="citem"><strong>Area m&sup2;</strong><span>Total 6&ndash;1,117 m&sup2;</span></div><div class="citem"><strong>Living area m&sup2;</strong><span>Usable living space</span></div><div class="citem"><strong>Kitchen area m&sup2;</strong><span>Kitchen size</span></div><div class="citem"><strong>Floor</strong><span>Floor number</span></div><div class="citem"><strong>Number of floors</strong><span>Building total floors</span></div><div class="citem"><strong>Renovation</strong><span>4 finish levels</span></div></div></div>
+  <div class="acard-w"><h3>Methods</h3><div class="mrow"><div class="mc"><div class="mt" style="color:var(--blue)">Main model</div><div class="mn">Weighted Scoring Model</div><div class="md">Score each criterion 1&ndash;10, multiply by weight, sum. Formula: &Sigma;(score &times; weight)</div></div><div class="mc"><div class="mt" style="color:var(--gold)">Analysis</div><div class="mn">Sensitivity Analysis</div><div class="md">Study how weight changes alter rankings. Finds the most robust apartment.</div></div><div class="mc"><div class="mt" style="color:var(--purple)">Profiles</div><div class="mn">Scenario Analysis</div><div class="md">Student, Family, Worker profiles with different weights show context-dependent choices.</div></div></div></div>
+</div>
+
+</div></main>
+
+<script>
+// ─── NAVIGATION ───
+function go(id, btn) {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nav-btn').forEach(function(b) {
+    b.classList.remove('active');
+    var d = b.querySelector('.nav-dot');
+    if (d) d.remove();
+  });
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  var dot = document.createElement('span');
+  dot.className = 'nav-dot';
+  btn.appendChild(dot);
+  if (id === 'explore') renderExplorer();
+  if (id === 'mcda') { buildSliders(); renderRanking(); }
+  if (id === 'insights') renderInsights();
+}
+
+// ─── CHART.JS ───
+Chart.defaults.font.family = '"Plus Jakarta Sans", sans-serif';
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#4A5470';
+Chart.defaults.plugins.legend.display = false;
+var PAL = ['#2563EB','#0891B2','#7C3AED','#059669','#F59E0B','#DC2626'];
+
+function mkBar(id, labels, values, colors, fmtFn) {
+  new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: { labels: labels, datasets: [{ data: values, backgroundColor: colors || PAL, borderRadius: 5, borderSkipped: false }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return ' ' + (fmtFn ? fmtFn(ctx.parsed.y) : ctx.parsed.y); } } } },
+      scales: { x: { grid: { display: false }, border: { display: false } }, y: { grid: { color: '#F0F2F8' }, border: { display: false } } }
+    }
+  });
+}
+
+function mkDonut(id, labels, values) {
+  new Chart(document.getElementById(id), {
+    type: 'doughnut',
+    data: { labels: labels, datasets: [{ data: values, backgroundColor: PAL, borderWidth: 2, borderColor: '#fff' }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { display: true, position: 'right', labels: { boxWidth: 9, padding: 9, font: { size: 10 } } } } }
+  });
+}
+
+function mkIbars(id, items, maxVal) {
+  document.getElementById(id).innerHTML = items.map(function(it) {
+    return '<div class="ibar"><span class="ib-lbl">' + it.label + '</span><div class="ib-track"><div class="ib-fill" style="width:' + (it.val / maxVal * 100).toFixed(1) + '%;background:' + it.color + '"></div></div><span class="ib-val">' + it.display + '</span></div>';
+  }).join('');
+}
+
+// ─── INIT ───
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    buildStatCards();
+    buildDashCharts();
+    document.getElementById('loading').style.display = 'none';
+  }, 120);
+});
+
+function buildStatCards() {
+  var S = STATS;
+  var cards = [
+    { bg:'#EFF4FF', stroke:'#2563EB', icon:'<rect x="3" y="12" width="4" height="9"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="3" width="4" height="18"/>', val: S.total.toLocaleString(), lbl:'Total listings' },
+    { bg:'#FFFBEB', stroke:'#F59E0B', icon:'<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>', val: S.median_price + ' M', lbl:'Median price (RUB)' },
+    { bg:'#ECFDF5', stroke:'#059669', icon:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>', val: S.median_area + ' m²', lbl:'Median area' },
+    { bg:'#F5F3FF', stroke:'#7C3AED', icon:'<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>', val:'2.4×', lbl:'Moscow vs Oblast price ratio' },
+    { bg:'#FEF2F2', stroke:'#DC2626', icon:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>', val:'56%', lbl:'Cosmetic renovation share' },
+  ];
+  document.getElementById('stat-grid').innerHTML = cards.map(function(c) {
+    return '<div class="sc"><div class="si" style="background:' + c.bg + '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="' + c.stroke + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + c.icon + '</svg></div><div class="sv">' + c.val + '</div><div class="sl">' + c.lbl + '</div></div>';
+  }).join('');
+}
+
+function buildDashCharts() {
+  var S = STATS;
+  var fmtM = function(v) { return v.toFixed ? v.toFixed(2) + ' M RUB' : v; };
+  mkBar('c-pdist', Object.keys(S.price_dist), Object.values(S.price_dist), ['#BFDBFE','#60A5FA','#2563EB','#1D4ED8','#1E3A8A']);
+  mkDonut('c-rooms', Object.keys(S.rooms).slice(0, 6), Object.values(S.rooms).slice(0, 6));
+  mkBar('c-reno', Object.keys(S.reno), Object.values(S.reno), ['#059669','#2563EB','#F59E0B','#7C3AED'], fmtM);
+  mkBar('c-region', Object.keys(S.region), Object.values(S.region), ['#0891B2','#2563EB'], fmtM);
+  mkBar('c-metro', Object.keys(S.metro), Object.values(S.metro), ['#2563EB','#60A5FA','#93C5FD','#BFDBFE'], fmtM);
+  mkBar('c-floor', Object.keys(S.floor), Object.values(S.floor), ['#F59E0B','#2563EB','#0891B2','#7C3AED','#059669']);
+}
+
+// ─── INSIGHTS ───
+function renderInsights() {
+  var S = STATS;
+  mkIbars('ins-rooms', [
+    { label:'2 rooms (6,342)', val:6342, color:'#2563EB', display:'28%' },
+    { label:'1 room (5,141)',  val:5141, color:'#0891B2', display:'23%' },
+    { label:'3 rooms (3,814)', val:3814, color:'#7C3AED', display:'17%' },
+    { label:'Studio (3,731)',  val:3731, color:'#059669', display:'16%' },
+    { label:'4+ rooms (3,648)',val:3648, color:'#F59E0B', display:'16%' },
+  ], 6342);
+  mkIbars('ins-metro', [
+    { label:'0-5 min',   val:S.metro['0-5'],   color:'#2563EB', display:S.metro['0-5']+'M' },
+    { label:'6-15 min',  val:S.metro['6-15'],  color:'#0891B2', display:S.metro['6-15']+'M' },
+    { label:'16-30 min', val:S.metro['16-30'], color:'#7C3AED', display:S.metro['16-30']+'M' },
+    { label:'30+ min',   val:S.metro['30+'],   color:'#F59E0B', display:S.metro['30+']+'M' },
+  ], S.metro['0-5']);
+  mkIbars('ins-reno', [
+    { label:'Designer',          val:S.reno['Designer'],                     color:'#7C3AED', display:S.reno['Designer']+'M' },
+    { label:'Without renovation',val:S.reno['Without renovation'],           color:'#DC2626', display:S.reno['Without renovation']+'M' },
+    { label:'European-style',    val:S.reno['European-style renovation'],    color:'#2563EB', display:S.reno['European-style renovation']+'M' },
+    { label:'Cosmetic',          val:S.reno['Cosmetic'],                     color:'#059669', display:S.reno['Cosmetic']+'M' },
+  ], S.reno['Designer']);
+  mkIbars('ins-region', [
+    { label:'Moscow',        val:S.region['Moscow'],         color:'#2563EB', display:S.region['Moscow']+'M' },
+    { label:'Moscow Oblast', val:S.region['Moscow region'],  color:'#0891B2', display:S.region['Moscow region']+'M' },
+  ], S.region['Moscow']);
+  mkIbars('ins-floor', [
+    { label:'Low (2-5): 7,215',    val:7215, color:'#2563EB', display:'32%' },
+    { label:'High (11-20): 6,464', val:6464, color:'#0891B2', display:'28%' },
+    { label:'Mid (6-10): 5,869',   val:5869, color:'#7C3AED', display:'26%' },
+    { label:'Top (20+): 1,570',    val:1570, color:'#059669', display:'7%' },
+    { label:'Ground (1): 1,558',   val:1558, color:'#F59E0B', display:'7%' },
+  ], 7215);
+  mkIbars('ins-weights', [
+    { label:'Price affordability', val:0.30, color:'#DC2626', display:'0.30' },
+    { label:'Metro proximity',     val:0.25, color:'#2563EB', display:'0.25' },
+    { label:'Apartment size',      val:0.15, color:'#059669', display:'0.15' },
+    { label:'Comfort/Renovation',  val:0.15, color:'#7C3AED', display:'0.15' },
+    { label:'Infrastructure',      val:0.15, color:'#F59E0B', display:'0.15' },
+  ], 0.30);
+}
+
+// ─── EXPLORER ───
+var PAGE_SIZE = 24;
+var filtered = [];
+var curPage = 1;
+
+function renoInfo(r) {
+  if (r === 'Cosmetic') return ['tc','Cosmetic'];
+  if (r === 'European-style renovation') return ['te','European'];
+  if (r === 'Designer') return ['td','Designer'];
+  return ['tn','No renov.'];
+}
+
+// MCDA score for real apartment rows
+function aptScore(a, w) {
+  var priceScore   = Math.max(1, Math.min(10, Math.round(11 - (a.p - 2) / 4)));
+  var metroScore   = Math.max(1, Math.min(10, Math.round(11 - a.m / 3)));
+  var sizeScore    = Math.max(1, Math.min(10, Math.round(a.a / 12)));
+  var renoMap      = { 'Designer':10, 'European-style renovation':8, 'Cosmetic':6, 'Without renovation':3 };
+  var comfortScore = renoMap[a.rn] || 5;
+  var infraScore   = a.m <= 5 ? 9 : a.m <= 10 ? 7 : a.m <= 20 ? 6 : 4;
+  return priceScore * w.price + metroScore * w.distance + sizeScore * w.size + comfortScore * w.comfort + infraScore * w.infra;
+}
+
+function applyFilter() {
+  var rooms  = document.getElementById('f-rooms').value;
+  var reno   = document.getElementById('f-reno').value;
+  var region = document.getElementById('f-region').value;
+  var metro  = document.getElementById('f-metro').value;
+  var price  = document.getElementById('f-price').value;
+  var sort   = document.getElementById('f-sort').value;
+
+  filtered = APARTMENTS.filter(function(a) {
+    if (rooms  !== '' && a.r !== Number(rooms)) return false;
+    if (reno   !== '' && a.rn !== reno)         return false;
+    if (region !== '' && a.rg !== region)        return false;
+    if (metro  !== '' && a.m > Number(metro))    return false;
+    if (price  !== '' && a.p > Number(price))    return false;
+    return true;
+  });
+
+  var w = mcda_weights;
+  if (sort === 'p-asc')  filtered.sort(function(a,b) { return a.p - b.p; });
+  else if (sort === 'p-desc') filtered.sort(function(a,b) { return b.p - a.p; });
+  else if (sort === 'a-desc') filtered.sort(function(a,b) { return b.a - a.a; });
+  else if (sort === 'm-asc')  filtered.sort(function(a,b) { return a.m - b.m; });
+  else if (sort === 's-desc') filtered.sort(function(a,b) { return aptScore(b,w) - aptScore(a,w); });
+
+  curPage = 1;
+  renderPage();
+}
+
+function renderPage() {
+  var total = filtered.length;
+  var pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  var slice = filtered.slice((curPage - 1) * PAGE_SIZE, curPage * PAGE_SIZE);
+  var w = mcda_weights;
+
+  document.getElementById('count-lbl').innerHTML = '<strong>' + total.toLocaleString() + '</strong> apartments found';
+  document.getElementById('page-lbl').textContent = 'Page ' + curPage + ' of ' + pages;
+
+  document.getElementById('apt-grid').innerHTML = slice.map(function(a) {
+    var ri = renoInfo(a.rn);
+    var sc = aptScore(a, w).toFixed(2);
+    var pct = Math.max(0, Math.min(100, (Number(sc) - 3) / 7 * 100)).toFixed(0);
+    var rm = a.r === 0 ? 'Studio' : a.r + '-room';
+    return '<div class="acard"><div class="ac-top"><div><div class="ac-station">' + a.st + '</div><div class="ac-region">' + a.rg + ' &middot; ' + a.tp + '</div></div><div class="ac-price"><div class="ac-pval">' + a.p.toFixed(1) + 'M</div><div class="ac-plbl">RUB</div></div></div><div class="ac-body"><div class="tags"><span class="tag ' + ri[0] + '">' + ri[1] + '</span><span class="tag tb">' + rm + '</span><span class="tag tg">Fl ' + a.fl + '/' + a.tf + '</span></div><div class="aattrs"><div class="attr"><div class="av">' + a.a + ' m²</div><div class="al">Total area</div></div><div class="attr"><div class="av">' + a.m + ' min</div><div class="al">Metro walk</div></div><div class="attr"><div class="av">' + a.ka + ' m²</div><div class="al">Kitchen</div></div></div><div class="srow"><span class="slbl">MCDA score</span><div class="strk"><div class="sfil" style="width:' + pct + '%"></div></div><span class="sval">' + sc + '</span></div></div></div>';
+  }).join('');
+
+  document.getElementById('pgn').innerHTML =
+    '<button class="pgb" onclick="changePage(-1)"' + (curPage === 1 ? ' disabled' : '') + '><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Prev</button>' +
+    '<span class="pgi">Page ' + curPage + ' / ' + pages + '</span>' +
+    '<button class="pgb" onclick="changePage(1)"' + (curPage >= pages ? ' disabled' : '') + '>Next <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>';
+}
+
+function changePage(d) {
+  var pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  curPage = Math.max(1, Math.min(pages, curPage + d));
+  renderPage();
+  document.querySelector('.main').scrollTo(0, 0);
+}
+
+function renderExplorer() {
+  if (filtered.length === 0) applyFilter();
+  else renderPage();
+}
+
+// ─── MCDA TOOL ───
+var APTS = [
+  { id:'A', name:'Apartment A', desc:'City center - Premium location', color:'#2563EB', scores:{ price:4, distance:9, size:7, comfort:9, infra:9 } },
+  { id:'B', name:'Apartment B', desc:'Suburb - Balanced choice',       color:'#059669', scores:{ price:7, distance:7, size:8, comfort:7, infra:7 } },
+  { id:'C', name:'Apartment C', desc:'Remote - Budget option',         color:'#DC2626', scores:{ price:10,distance:4, size:6, comfort:5, infra:5 } },
+  { id:'D', name:'Apartment D', desc:'Modern - High comfort',          color:'#7C3AED', scores:{ price:5, distance:6, size:9, comfort:10,infra:8 } },
+];
+var CRITS = [
+  { key:'price',    label:'Price affordability', w:0.30 },
+  { key:'distance', label:'Metro proximity',     w:0.25 },
+  { key:'size',     label:'Apartment size',      w:0.15 },
+  { key:'comfort',  label:'Comfort level',       w:0.15 },
+  { key:'infra',    label:'Infrastructure',      w:0.15 },
+];
+var PROFILES = {
+  default: { price:0.30, distance:0.25, size:0.15, comfort:0.15, infra:0.15 },
+  student: { price:0.50, distance:0.25, size:0.10, comfort:0.08, infra:0.07 },
+  family:  { price:0.15, distance:0.20, size:0.25, comfort:0.25, infra:0.15 },
+  worker:  { price:0.15, distance:0.45, size:0.15, comfort:0.15, infra:0.10 },
+};
+var mcda_weights = { price:0.30, distance:0.25, size:0.15, comfort:0.15, infra:0.15 };
+
+function buildSliders() {
+  document.getElementById('sliders').innerHTML = CRITS.map(function(c) {
+    var pct = Math.round(mcda_weights[c.key] * 100);
+    return '<div class="wrow"><div class="wtop"><span class="wname">' + c.label + '</span><span class="wpct" id="wv-' + c.key + '">' + mcda_weights[c.key].toFixed(2) + '</span></div><input type="range" class="slider" min="0" max="100" step="1" value="' + pct + '" id="ws-' + c.key + '" oninput="slide('' + c.key + '',this.value)" style="background:linear-gradient(to right,var(--blue) ' + pct + '%,var(--surface2) ' + pct + '%)"></div>';
+  }).join('');
+}
+
+function slide(key, raw) {
+  mcda_weights[key] = raw / 100;
+  document.getElementById('wv-' + key).textContent = mcda_weights[key].toFixed(2);
+  document.getElementById('ws-' + key).style.background = 'linear-gradient(to right,var(--blue) ' + raw + '%,var(--surface2) ' + raw + '%)';
+  var total = Object.values(mcda_weights).reduce(function(a,b) { return a+b; }, 0);
+  var ok = Math.abs(total - 1) < 0.015;
+  var el = document.getElementById('w-total');
+  el.textContent = 'Total: ' + total.toFixed(2) + ' — ' + (ok ? 'valid' : 'should equal 1.00');
+  el.className = 'wpill ' + (ok ? 'wok' : 'wwarn');
+  renderRanking();
+}
+
+function applyProfile(name, btn) {
+  mcda_weights = Object.assign({}, PROFILES[name]);
+  buildSliders();
+  document.getElementById('w-total').textContent = 'Total: 1.00 — valid';
+  document.getElementById('w-total').className = 'wpill wok';
+  document.querySelectorAll('.ptab').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  renderRanking();
+}
+
+function wsmScore(apt) {
+  return CRITS.reduce(function(s,c) { return s + apt.scores[c.key] * mcda_weights[c.key]; }, 0);
+}
+
+function renderRanking() {
+  var ranked = APTS.map(function(a) { return Object.assign({}, a, { score: wsmScore(a) }); })
+    .sort(function(a,b) { return b.score - a.score; });
+  var medals = ['01','02','03','04'];
+  document.getElementById('rank-list').innerHTML = ranked.map(function(a, i) {
+    var bars = CRITS.map(function(c) {
+      return '<div class="crow"><span class="clbl">' + c.label + '</span><div class="ctrk"><div class="cfil" style="width:' + (a.scores[c.key]*10) + '%;background:' + a.color + '"></div></div><span class="cv">' + a.scores[c.key] + '</span></div>';
+    }).join('');
+    return '<div class="rcard ' + (i===0?'gold':'') + '"><div class="rhead"><div class="rnum">' + medals[i] + '</div><div class="rinfo"><div class="rname">' + a.name + '</div><div class="rdesc">' + a.desc + '</div></div><div class="rscore" style="color:' + a.color + '">' + a.score.toFixed(2) + '</div></div><div class="cbars">' + bars + '</div></div>';
+  }).join('');
+}
+</script>
+</body>
+</html>
