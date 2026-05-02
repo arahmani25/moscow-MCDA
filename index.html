@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Moscow Housing · MCDA Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="data.js"></script>
 <style>
 :root{
   --bg:#F5F6FA; --surface:#fff; --surface2:#F0F2F8; --border:#E3E8F0; --border2:#C8D0E0;
@@ -186,7 +184,7 @@ input[type=range].slider::-webkit-slider-thumb:hover{transform:scale(1.2);}
 <div class="loading" id="loading">
   <div style="font-family:'Syne',sans-serif;font-size:19px;color:var(--navy)">Loading dataset</div>
   <div class="lbar"><div class="lfill"></div></div>
-  <p style="font-size:11px;color:var(--text2)">Reading 22,676 apartment listings from data.js</p>
+  <p id="load-msg" style="font-size:11px;color:var(--text2)">Reading 22,676 apartment listings from data.js</p>
 </div>
 
 <aside class="sidebar">
@@ -345,6 +343,20 @@ input[type=range].slider::-webkit-slider-thumb:hover{transform:scale(1.2);}
 
 </div></main>
 
+<!-- Chart.js and data.js loaded at end of body to guarantee parse order -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// data.js defines APARTMENTS and STATS as globals
+// We load it dynamically so we can guarantee it is fully parsed before init
+function loadData() {
+  var s = document.createElement("script");
+  s.src = "data.js";
+  s.onload = function() { appInit(); };
+  s.onerror = function() { document.getElementById("load-msg").textContent = "Error loading data.js — make sure it is in the same folder as index.html"; };
+  document.body.appendChild(s);
+}
+window.addEventListener("DOMContentLoaded", loadData);
+</script>
 <script>
 // ─── NAVIGATION ───
 function go(id, btn) {
@@ -398,13 +410,12 @@ function mkIbars(id, items, maxVal) {
 }
 
 // ─── INIT ───
-window.addEventListener('load', function() {
-  setTimeout(function() {
-    buildStatCards();
-    buildDashCharts();
-    document.getElementById('loading').style.display = 'none';
-  }, 120);
-});
+function appInit() {
+  // APARTMENTS and STATS are now guaranteed to be defined
+  buildStatCards();
+  buildDashCharts();
+  document.getElementById('loading').style.display = 'none';
+}
 
 function buildStatCards() {
   var S = STATS;
@@ -533,18 +544,45 @@ function renderPage() {
   document.getElementById('count-lbl').innerHTML = '<strong>' + total.toLocaleString() + '</strong> apartments found';
   document.getElementById('page-lbl').textContent = 'Page ' + curPage + ' of ' + pages;
 
-  document.getElementById('apt-grid').innerHTML = slice.map(function(a) {
+  var html = '';
+  for (var i = 0; i < slice.length; i++) {
+    var a = slice[i];
     var ri = renoInfo(a.rn);
     var sc = aptScore(a, w).toFixed(2);
     var pct = Math.max(0, Math.min(100, (Number(sc) - 3) / 7 * 100)).toFixed(0);
     var rm = a.r === 0 ? 'Studio' : a.r + '-room';
-    return '<div class="acard"><div class="ac-top"><div><div class="ac-station">' + a.st + '</div><div class="ac-region">' + a.rg + ' &middot; ' + a.tp + '</div></div><div class="ac-price"><div class="ac-pval">' + a.p.toFixed(1) + 'M</div><div class="ac-plbl">RUB</div></div></div><div class="ac-body"><div class="tags"><span class="tag ' + ri[0] + '">' + ri[1] + '</span><span class="tag tb">' + rm + '</span><span class="tag tg">Fl ' + a.fl + '/' + a.tf + '</span></div><div class="aattrs"><div class="attr"><div class="av">' + a.a + ' m²</div><div class="al">Total area</div></div><div class="attr"><div class="av">' + a.m + ' min</div><div class="al">Metro walk</div></div><div class="attr"><div class="av">' + a.ka + ' m²</div><div class="al">Kitchen</div></div></div><div class="srow"><span class="slbl">MCDA score</span><div class="strk"><div class="sfil" style="width:' + pct + '%"></div></div><span class="sval">' + sc + '</span></div></div></div>';
-  }).join('');
+    html += '<div class="acard">';
+    html += '<div class="ac-top">';
+    html += '<div><div class="ac-station">' + a.st + '</div>';
+    html += '<div class="ac-region">' + a.rg + ' &middot; ' + a.tp + '</div></div>';
+    html += '<div class="ac-price"><div class="ac-pval">' + a.p.toFixed(1) + 'M</div>';
+    html += '<div class="ac-plbl">RUB</div></div>';
+    html += '</div>';
+    html += '<div class="ac-body">';
+    html += '<div class="tags">';
+    html += '<span class="tag ' + ri[0] + '">' + ri[1] + '</span>';
+    html += '<span class="tag tb">' + rm + '</span>';
+    html += '<span class="tag tg">Fl ' + a.fl + '/' + a.tf + '</span>';
+    html += '</div>';
+    html += '<div class="aattrs">';
+    html += '<div class="attr"><div class="av">' + a.a + ' m²</div><div class="al">Total area</div></div>';
+    html += '<div class="attr"><div class="av">' + a.m + ' min</div><div class="al">Metro walk</div></div>';
+    html += '<div class="attr"><div class="av">' + a.ka + ' m²</div><div class="al">Kitchen</div></div>';
+    html += '</div>';
+    html += '<div class="srow"><span class="slbl">MCDA score</span>';
+    html += '<div class="strk"><div class="sfil" style="width:' + pct + '%"></div></div>';
+    html += '<span class="sval">' + sc + '</span></div>';
+    html += '</div></div>';
+  }
+  document.getElementById('apt-grid').innerHTML = html;
 
-  document.getElementById('pgn').innerHTML =
-    '<button class="pgb" onclick="changePage(-1)"' + (curPage === 1 ? ' disabled' : '') + '><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Prev</button>' +
-    '<span class="pgi">Page ' + curPage + ' / ' + pages + '</span>' +
-    '<button class="pgb" onclick="changePage(1)"' + (curPage >= pages ? ' disabled' : '') + '>Next <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>';
+  var pgn = '';
+  pgn += '<button class="pgb" onclick="changePage(-1)"' + (curPage === 1 ? ' disabled' : '') + '>';
+  pgn += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Prev</button>';
+  pgn += '<span class="pgi">Page ' + curPage + ' / ' + pages + '</span>';
+  pgn += '<button class="pgb" onclick="changePage(1)"' + (curPage >= pages ? ' disabled' : '') + '>';
+  pgn += 'Next <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>';
+  document.getElementById('pgn').innerHTML = pgn;
 }
 
 function changePage(d) {
@@ -582,10 +620,19 @@ var PROFILES = {
 var mcda_weights = { price:0.30, distance:0.25, size:0.15, comfort:0.15, infra:0.15 };
 
 function buildSliders() {
-  document.getElementById('sliders').innerHTML = CRITS.map(function(c) {
-    var pct = Math.round(mcda_weights[c.key] * 100);
-    return '<div class="wrow"><div class="wtop"><span class="wname">' + c.label + '</span><span class="wpct" id="wv-' + c.key + '">' + mcda_weights[c.key].toFixed(2) + '</span></div><input type="range" class="slider" min="0" max="100" step="1" value="' + pct + '" id="ws-' + c.key + '" oninput="slide('' + c.key + '',this.value)" style="background:linear-gradient(to right,var(--blue) ' + pct + '%,var(--surface2) ' + pct + '%)"></div>';
-  }).join('');
+  var html = '';
+  for (var i = 0; i < CRITS.length; i++) {
+    var ck = CRITS[i];
+    var pct = Math.round(mcda_weights[ck.key] * 100);
+    html += '<div class="wrow">';
+    html += '<div class="wtop"><span class="wname">' + ck.label + '</span>';
+    html += '<span class="wpct" id="wv-' + ck.key + '">' + mcda_weights[ck.key].toFixed(2) + '</span></div>';
+    html += '<input type="range" class="slider" min="0" max="100" step="1"';
+    html += ' value="' + pct + '" id="ws-' + ck.key + '" data-key="' + ck.key + '"';
+    html += ' oninput="slide(this.dataset.key, this.value)"';
+    html += ' style="background:linear-gradient(to right,var(--blue) ' + pct + '%,var(--surface2) ' + pct + '%)"></div>';
+  }
+  document.getElementById('sliders').innerHTML = html;
 }
 
 function slide(key, raw) {
@@ -618,12 +665,29 @@ function renderRanking() {
   var ranked = APTS.map(function(a) { return Object.assign({}, a, { score: wsmScore(a) }); })
     .sort(function(a,b) { return b.score - a.score; });
   var medals = ['01','02','03','04'];
-  document.getElementById('rank-list').innerHTML = ranked.map(function(a, i) {
-    var bars = CRITS.map(function(c) {
-      return '<div class="crow"><span class="clbl">' + c.label + '</span><div class="ctrk"><div class="cfil" style="width:' + (a.scores[c.key]*10) + '%;background:' + a.color + '"></div></div><span class="cv">' + a.scores[c.key] + '</span></div>';
-    }).join('');
-    return '<div class="rcard ' + (i===0?'gold':'') + '"><div class="rhead"><div class="rnum">' + medals[i] + '</div><div class="rinfo"><div class="rname">' + a.name + '</div><div class="rdesc">' + a.desc + '</div></div><div class="rscore" style="color:' + a.color + '">' + a.score.toFixed(2) + '</div></div><div class="cbars">' + bars + '</div></div>';
-  }).join('');
+  var html = '';
+  for (var i = 0; i < ranked.length; i++) {
+    var a = ranked[i];
+    var bars = '';
+    for (var j = 0; j < CRITS.length; j++) {
+      var crit = CRITS[j];
+      bars += '<div class="crow">';
+      bars += '<span class="clbl">' + crit.label + '</span>';
+      bars += '<div class="ctrk"><div class="cfil" style="width:' + (a.scores[crit.key] * 10) + '%;background:' + a.color + '"></div></div>';
+      bars += '<span class="cv">' + a.scores[crit.key] + '</span>';
+      bars += '</div>';
+    }
+    var cardClass = i === 0 ? 'rcard gold' : 'rcard';
+    html += '<div class="' + cardClass + '">';
+    html += '<div class="rhead">';
+    html += '<div class="rnum">' + medals[i] + '</div>';
+    html += '<div class="rinfo"><div class="rname">' + a.name + '</div><div class="rdesc">' + a.desc + '</div></div>';
+    html += '<div class="rscore" style="color:' + a.color + '">' + a.score.toFixed(2) + '</div>';
+    html += '</div>';
+    html += '<div class="cbars">' + bars + '</div>';
+    html += '</div>';
+  }
+  document.getElementById('rank-list').innerHTML = html;
 }
 </script>
 </body>
